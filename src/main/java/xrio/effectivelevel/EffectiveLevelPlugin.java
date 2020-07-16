@@ -25,8 +25,8 @@ import net.runelite.client.plugins.PluginDescriptor;
 @PluginDescriptor(
 	name = "Effective Levels",
 	description = "Shows the invisible effective boosted combat skill levels in the skills tab.<br>" +
-		"These are the levels that go into the max hit and accuracy formulas " +
-		"before accounting for equipment bonuses.",
+		"These are the levels that go into the max hit, accuracy roll and <br>" +
+		"defence roll formulas before accounting for equipment bonuses.",
 	tags = {"skill", "effective", "boosted", "invisible", "levels"},
 	enabledByDefault = false
 )
@@ -44,6 +44,15 @@ public class EffectiveLevelPlugin extends Plugin
 	EffectiveLevelConfig provideConfig(ConfigManager configManager)
 	{
 		return configManager.getConfig(EffectiveLevelConfig.class);
+	}
+
+	@Override
+	protected void shutDown() throws Exception
+	{
+		for (Skill skill : skills)
+		{
+			updateSkillLevel(skill, client.getBoostedSkillLevel(skill));
+		}
 	}
 
 	@Subscribe
