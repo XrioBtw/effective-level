@@ -2,7 +2,9 @@ package xrio.effectivelevel;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Provides;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import javax.inject.Inject;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
@@ -222,27 +224,30 @@ public class EffectiveLevelPlugin extends Plugin
 		}
 
 		final ItemContainer equipment = client.getItemContainer(InventoryID.EQUIPMENT);
-		Item[] items = new Item[0];
+		Set<Integer> itemIDs = new HashSet<>();
 		if (equipment != null)
 		{
-			items = equipment.getItems();
+			for (Item item : equipment.getItems())
+			{
+				itemIDs.add(item.getId());
+			}
 		}
 
-		if (!(containsItem(items, ItemID.VOID_KNIGHT_GLOVES) &&
-				(containsItem(items, ItemID.VOID_KNIGHT_TOP) || containsItem(items, ItemID.ELITE_VOID_TOP)) &&
-				(containsItem(items, ItemID.VOID_KNIGHT_ROBE) || containsItem(items, ItemID.ELITE_VOID_ROBE))))
+		if (!(itemIDs.contains(ItemID.VOID_KNIGHT_GLOVES) &&
+				(itemIDs.contains(ItemID.VOID_KNIGHT_TOP) || itemIDs.contains(ItemID.ELITE_VOID_TOP)) &&
+				(itemIDs.contains(ItemID.VOID_KNIGHT_ROBE) || itemIDs.contains(ItemID.ELITE_VOID_ROBE))))
 		{
 			return multiplier;
 		}
 
 		if ((Skill.ATTACK.equals(skill) || Skill.STRENGTH.equals(skill)) &&
-				containsItem(items, ItemID.VOID_MELEE_HELM))
+				itemIDs.contains(ItemID.VOID_MELEE_HELM))
 		{
 			multiplier = 1.10;
 		}
-		else if (Skill.RANGED.equals(skill) && containsItem(items, ItemID.VOID_RANGER_HELM))
+		else if (Skill.RANGED.equals(skill) && itemIDs.contains(ItemID.VOID_RANGER_HELM))
 		{
-			if (containsItem(items, ItemID.ELITE_VOID_TOP) && containsItem(items, ItemID.ELITE_VOID_ROBE))
+			if (itemIDs.contains(ItemID.ELITE_VOID_TOP) && itemIDs.contains(ItemID.ELITE_VOID_ROBE))
 			{
 				multiplier = 1.125;
 			}
@@ -251,9 +256,9 @@ public class EffectiveLevelPlugin extends Plugin
 				multiplier = 1.10;
 			}
 		}
-		else if (Skill.MAGIC.equals(skill) && containsItem(items, ItemID.VOID_MAGE_HELM))
+		else if (Skill.MAGIC.equals(skill) && itemIDs.contains(ItemID.VOID_MAGE_HELM))
 		{
-			if (containsItem(items, ItemID.ELITE_VOID_TOP) && containsItem(items, ItemID.ELITE_VOID_ROBE))
+			if (itemIDs.contains(ItemID.ELITE_VOID_TOP) && itemIDs.contains(ItemID.ELITE_VOID_ROBE))
 			{
 				multiplier = 1.475;
 			}
@@ -263,18 +268,6 @@ public class EffectiveLevelPlugin extends Plugin
 			}
 		}
 		return multiplier;
-	}
-
-	private boolean containsItem(Item[] items, int itemId)
-	{
-		for (Item item : items)
-		{
-			if (item.getId() == itemId)
-			{
-				return true;
-			}
-		}
-		return false;
 	}
 
 	private enum CombatStyle
