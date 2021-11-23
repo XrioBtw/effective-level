@@ -21,12 +21,14 @@ import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetID;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import org.apache.commons.lang3.ArrayUtils;
 
 @PluginDescriptor(
 	name = "Effective Levels",
-	description = "Shows the invisible effective boosted combat skill levels in the skills tab.<br>" +
+	description = "Shows the invisible effective boosted skill levels in the skills tab.<br>" +
 		"These are the levels that go into the max hit, accuracy roll and <br>" +
 		"defence roll formulas before accounting for equipment bonuses.",
 	tags = {"skill", "effective", "boosted", "invisible", "levels"},
@@ -40,7 +42,14 @@ public class EffectiveLevelPlugin extends Plugin
 	@Inject
 	private EffectiveLevelConfig config;
 
-	private final Skill[] skills = new Skill[]{Skill.ATTACK, Skill.STRENGTH, Skill.DEFENCE, Skill.RANGED, Skill.MAGIC};
+	private final Skill[] combatSkills = new Skill[]{Skill.ATTACK, Skill.STRENGTH, Skill.DEFENCE, Skill.RANGED, Skill.MAGIC};
+	private final Skill[] nonCombatSkills = new Skill[]{Skill.MINING, Skill.CONSTRUCTION, Skill.FISHING, Skill.WOODCUTTING};
+	private final Skill[] skills = ArrayUtils.addAll(combatSkills, nonCombatSkills);
+
+	private final int[] miningRings = new int[]
+	{
+		ItemID.CELESTIAL_RING, ItemID.CELESTIAL_RING_UNCHARGED, ItemID.CELESTIAL_SIGNET, ItemID.CELESTIAL_SIGNET_UNCHARGED
+	};
 
 	@Provides
 	EffectiveLevelConfig provideConfig(ConfigManager configManager)
@@ -51,9 +60,15 @@ public class EffectiveLevelPlugin extends Plugin
 	@Override
 	protected void shutDown() throws Exception
 	{
-		for (Skill skill : skills)
+		resetLevels();
+	}
+
+	@Subscribe
+	public void onConfigChanged(ConfigChanged event)
+	{
+		if (event.getGroup().equals("effectivelevel"))
 		{
-			updateSkillLevel(skill, client.getBoostedSkillLevel(skill));
+			resetLevels();
 		}
 	}
 
@@ -65,8 +80,7 @@ public class EffectiveLevelPlugin extends Plugin
 			return;
 		}
 
-		// Attack, Strength, Defence, Ranged, Magic
-		for (Skill skill : skills)
+		for (Skill skill : combatSkills)
 		{
 			double prayerBoost = getPrayerBoost(skill);
 			int stanceBonus = getStanceBonus(skill);
@@ -96,6 +110,61 @@ public class EffectiveLevelPlugin extends Plugin
 
 			updateSkillLevel(skill, effectiveLevel);
 		}
+
+		if (config.showInvisibleBoost())
+		{
+			int miningLevel = client.getBoostedSkillLevel(Skill.MINING);
+			int constructionLevel = client.getBoostedSkillLevel(Skill.CONSTRUCTION);
+			int fishingLevel = client.getBoostedSkillLevel(Skill.FISHING);
+			int woodcuttingLevel = client.getBoostedSkillLevel(Skill.WOODCUTTING);
+
+			Set<Integer> equipment = getItemIDs(InventoryID.EQUIPMENT);
+			for (int id : miningRings)
+			{
+				if (equipment.contains(id))
+				{
+					miningLevel += 4;
+					break;
+				}
+			}
+
+			Set<Integer> inventory = getItemIDs(InventoryID.INVENTORY);
+			if (inventory.contains(ItemID.CRYSTAL_SAW))
+			{
+				constructionLevel += 3;
+			}
+
+			if (client.getLocalPlayer() != null)
+			{
+				int regionId = client.getLocalPlayer().getWorldLocation().getRegionID();
+
+				if (regionId == 11927 || regionId == 12183)
+				{
+					miningLevel += 7;
+				}
+				else if (regionId == 10293)
+				{
+					fishingLevel += 7;
+				}
+				else if (regionId == 6198 || regionId == 6454)
+				{
+					woodcuttingLevel += 7;
+				}
+			}
+
+			updateSkillLevel(Skill.MINING, miningLevel);
+			updateSkillLevel(Skill.CONSTRUCTION, constructionLevel);
+			updateSkillLevel(Skill.FISHING, fishingLevel);
+			updateSkillLevel(Skill.WOODCUTTING, woodcuttingLevel);
+		}
+	}
+
+	private void resetLevels()
+	{
+		for (Skill skill : skills)
+		{
+			updateSkillLevel(skill, client.getBoostedSkillLevel(skill));
+		}
 	}
 
 	private void updateSkillLevel(Skill skill, int effectiveLevel)
@@ -117,6 +186,18 @@ public class EffectiveLevelPlugin extends Plugin
 				break;
 			case MAGIC:
 				childId = 6;
+				break;
+			case MINING:
+				childId = 17;
+				break;
+			case CONSTRUCTION:
+				childId = 8;
+				break;
+			case FISHING:
+				childId = 19;
+				break;
+			case WOODCUTTING:
+				childId = 22;
 				break;
 			default:
 				return;
@@ -214,6 +295,20 @@ public class EffectiveLevelPlugin extends Plugin
 		return bonus;
 	}
 
+	private Set<Integer> getItemIDs(final InventoryID inventoryID)
+	{
+		final ItemContainer container = client.getItemContainer(inventoryID);
+		Set<Integer> itemIDs = new HashSet<>();
+		if (container != null)
+		{
+			for (Item item : container.getItems())
+			{
+				itemIDs.add(item.getId());
+			}
+		}
+		return itemIDs;
+	}
+
 	private double getVoidBonus(Skill skill)
 	{
 		double multiplier = 1;
@@ -223,15 +318,7 @@ public class EffectiveLevelPlugin extends Plugin
 			return multiplier;
 		}
 
-		final ItemContainer equipment = client.getItemContainer(InventoryID.EQUIPMENT);
-		Set<Integer> itemIDs = new HashSet<>();
-		if (equipment != null)
-		{
-			for (Item item : equipment.getItems())
-			{
-				itemIDs.add(item.getId());
-			}
-		}
+		Set<Integer> itemIDs = getItemIDs(InventoryID.INVENTORY);
 
 		if (!(itemIDs.contains(ItemID.VOID_KNIGHT_GLOVES) &&
 				(itemIDs.contains(ItemID.VOID_KNIGHT_TOP) || itemIDs.contains(ItemID.ELITE_VOID_TOP)) &&

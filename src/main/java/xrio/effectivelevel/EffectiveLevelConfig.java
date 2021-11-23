@@ -50,4 +50,15 @@ public interface EffectiveLevelConfig extends Config
 	{
 		return true;
 	}
+
+	@ConfigItem(
+		keyName = "showInvisibleBoost",
+		name = "Show invisible skill boost",
+		description = "Apply invisible boosts to appropriate boosted non-combat skill levels.",
+		position = 4
+	)
+	default boolean showInvisibleBoost()
+	{
+		return true;
+	}
 }
