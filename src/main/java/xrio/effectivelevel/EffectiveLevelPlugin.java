@@ -42,8 +42,8 @@ public class EffectiveLevelPlugin extends Plugin
 	@Inject
 	private EffectiveLevelConfig config;
 
-	private final Skill[] combatSkills = new Skill[]{Skill.ATTACK, Skill.STRENGTH, Skill.DEFENCE, Skill.RANGED, Skill.MAGIC};
-	private final Skill[] nonCombatSkills = new Skill[]{Skill.MINING, Skill.CONSTRUCTION, Skill.FISHING, Skill.WOODCUTTING};
+	private final Skill[] combatSkills = new Skill[] { Skill.ATTACK, Skill.STRENGTH, Skill.DEFENCE, Skill.RANGED, Skill.MAGIC };
+	private final Skill[] nonCombatSkills = new Skill[] { Skill.MINING, Skill.CONSTRUCTION, Skill.FISHING, Skill.WOODCUTTING };
 	private final Skill[] skills = ArrayUtils.addAll(combatSkills, nonCombatSkills);
 
 	private final int[] miningRings = new int[]
@@ -318,17 +318,17 @@ public class EffectiveLevelPlugin extends Plugin
 			return multiplier;
 		}
 
-		Set<Integer> itemIDs = getItemIDs(InventoryID.INVENTORY);
+		Set<Integer> itemIDs = getItemIDs(InventoryID.EQUIPMENT);
 
 		if (!(itemIDs.contains(ItemID.VOID_KNIGHT_GLOVES) &&
-				(itemIDs.contains(ItemID.VOID_KNIGHT_TOP) || itemIDs.contains(ItemID.ELITE_VOID_TOP)) &&
-				(itemIDs.contains(ItemID.VOID_KNIGHT_ROBE) || itemIDs.contains(ItemID.ELITE_VOID_ROBE))))
+			(itemIDs.contains(ItemID.VOID_KNIGHT_TOP) || itemIDs.contains(ItemID.ELITE_VOID_TOP)) &&
+			(itemIDs.contains(ItemID.VOID_KNIGHT_ROBE) || itemIDs.contains(ItemID.ELITE_VOID_ROBE))))
 		{
 			return multiplier;
 		}
 
 		if ((Skill.ATTACK.equals(skill) || Skill.STRENGTH.equals(skill)) &&
-				itemIDs.contains(ItemID.VOID_MELEE_HELM))
+			itemIDs.contains(ItemID.VOID_MELEE_HELM))
 		{
 			multiplier = 1.10;
 		}
@@ -386,7 +386,9 @@ public class EffectiveLevelPlugin extends Plugin
 		TYPE_24("Accurate", "Aggressive", "Controlled", "Defensive"),
 		TYPE_25("Controlled", "Aggressive", null, "Defensive"),
 		TYPE_26("Aggressive", "Aggressive", null, "Aggressive"),
-		TYPE_27("Accurate", null, null, "Other");
+		TYPE_27("Accurate", null, null, "Other"),
+		TYPE_28("Accurate casting", "Accurate casting", null, "Longrange casting"),
+		TYPE_29("Accurate", "Aggressive", "Aggressive", "Defensive");
 
 		private final String[] attackStyles;
 
