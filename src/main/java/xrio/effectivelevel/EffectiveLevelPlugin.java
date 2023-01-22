@@ -262,8 +262,8 @@ public class EffectiveLevelPlugin extends Plugin
 
 	private int getStanceBonus(Skill skill)
 	{
-		int attackStyleVarbit = client.getVar(VarPlayer.ATTACK_STYLE);
-		int combatStyleVarbit = client.getVar(Varbits.EQUIPPED_WEAPON_TYPE);
+		int attackStyleVarbit = client.getVarpValue(VarPlayer.ATTACK_STYLE);
+		int combatStyleVarbit = client.getVarbitValue(Varbits.EQUIPPED_WEAPON_TYPE);
 
 		String attackStyle = CombatStyle.getAttackStyleText(combatStyleVarbit, attackStyleVarbit);
 
