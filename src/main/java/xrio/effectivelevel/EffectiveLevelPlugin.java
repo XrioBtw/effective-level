@@ -320,21 +320,53 @@ public class EffectiveLevelPlugin extends Plugin
 
 		Set<Integer> itemIDs = getItemIDs(InventoryID.EQUIPMENT);
 
-		if (!(itemIDs.contains(ItemID.VOID_KNIGHT_GLOVES) &&
-			(itemIDs.contains(ItemID.VOID_KNIGHT_TOP) || itemIDs.contains(ItemID.ELITE_VOID_TOP)) &&
-			(itemIDs.contains(ItemID.VOID_KNIGHT_ROBE) || itemIDs.contains(ItemID.ELITE_VOID_ROBE))))
+		boolean voidGloves = (itemIDs.contains(ItemID.VOID_KNIGHT_GLOVES) ||
+			itemIDs.contains(ItemID.VOID_KNIGHT_GLOVES_L) ||
+			itemIDs.contains(ItemID.VOID_KNIGHT_GLOVES_OR) ||
+			itemIDs.contains(ItemID.VOID_KNIGHT_GLOVES_LOR));
+		boolean voidTop = (itemIDs.contains(ItemID.VOID_KNIGHT_TOP) ||
+			itemIDs.contains(ItemID.VOID_KNIGHT_TOP_L) ||
+			itemIDs.contains(ItemID.VOID_KNIGHT_TOP_OR) ||
+			itemIDs.contains(ItemID.VOID_KNIGHT_TOP_LOR));
+		boolean voidBottom = (itemIDs.contains(ItemID.VOID_KNIGHT_ROBE) ||
+			itemIDs.contains(ItemID.VOID_KNIGHT_ROBE_L) ||
+			itemIDs.contains(ItemID.VOID_KNIGHT_ROBE_OR) ||
+			itemIDs.contains(ItemID.VOID_KNIGHT_ROBE_LOR));
+
+		boolean eliteVoidTop = (itemIDs.contains(ItemID.ELITE_VOID_TOP) ||
+			itemIDs.contains(ItemID.ELITE_VOID_TOP_L) ||
+			itemIDs.contains(ItemID.ELITE_VOID_TOP_OR) ||
+			itemIDs.contains(ItemID.ELITE_VOID_TOP_LOR));
+		boolean eliteVoidBottom = (itemIDs.contains(ItemID.ELITE_VOID_ROBE) ||
+			itemIDs.contains(ItemID.ELITE_VOID_ROBE_L) ||
+			itemIDs.contains(ItemID.ELITE_VOID_ROBE_OR) ||
+			itemIDs.contains(ItemID.ELITE_VOID_ROBE_LOR));
+
+		boolean voidHelmMelee = (itemIDs.contains(ItemID.VOID_MELEE_HELM) ||
+			itemIDs.contains(ItemID.VOID_MELEE_HELM_L) ||
+			itemIDs.contains(ItemID.VOID_MELEE_HELM_OR) ||
+			itemIDs.contains(ItemID.VOID_MELEE_HELM_LOR));
+		boolean voidHelmRanged = (itemIDs.contains(ItemID.VOID_RANGER_HELM) ||
+			itemIDs.contains(ItemID.VOID_RANGER_HELM_L) ||
+			itemIDs.contains(ItemID.VOID_RANGER_HELM_OR) ||
+			itemIDs.contains(ItemID.VOID_RANGER_HELM_LOR));
+		boolean voidHelmMagic = (itemIDs.contains(ItemID.VOID_MAGE_HELM) ||
+			itemIDs.contains(ItemID.VOID_MAGE_HELM_L) ||
+			itemIDs.contains(ItemID.VOID_MAGE_HELM_OR) ||
+			itemIDs.contains(ItemID.VOID_MAGE_HELM_LOR));
+
+		if (!(voidGloves && (voidTop || eliteVoidTop) && (voidBottom || eliteVoidBottom)))
 		{
 			return multiplier;
 		}
 
-		if ((Skill.ATTACK.equals(skill) || Skill.STRENGTH.equals(skill)) &&
-			itemIDs.contains(ItemID.VOID_MELEE_HELM))
+		if ((Skill.ATTACK.equals(skill) || Skill.STRENGTH.equals(skill)) && voidHelmMelee)
 		{
 			multiplier = 1.10;
 		}
-		else if (Skill.RANGED.equals(skill) && itemIDs.contains(ItemID.VOID_RANGER_HELM))
+		else if (Skill.RANGED.equals(skill) && voidHelmRanged)
 		{
-			if (itemIDs.contains(ItemID.ELITE_VOID_TOP) && itemIDs.contains(ItemID.ELITE_VOID_ROBE))
+			if (eliteVoidTop && eliteVoidBottom)
 			{
 				multiplier = 1.125;
 			}
@@ -343,9 +375,9 @@ public class EffectiveLevelPlugin extends Plugin
 				multiplier = 1.10;
 			}
 		}
-		else if (Skill.MAGIC.equals(skill) && itemIDs.contains(ItemID.VOID_MAGE_HELM))
+		else if (Skill.MAGIC.equals(skill) && voidHelmMagic)
 		{
-			if (itemIDs.contains(ItemID.ELITE_VOID_TOP) && itemIDs.contains(ItemID.ELITE_VOID_ROBE))
+			if (eliteVoidTop && eliteVoidBottom)
 			{
 				multiplier = 1.475;
 			}
