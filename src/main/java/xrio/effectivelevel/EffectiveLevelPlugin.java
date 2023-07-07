@@ -31,8 +31,7 @@ import org.apache.commons.lang3.ArrayUtils;
 	description = "Shows the invisible effective boosted skill levels in the skills tab.<br>" +
 		"These are the levels that go into the max hit, accuracy roll and <br>" +
 		"defence roll formulas before accounting for equipment bonuses.",
-	tags = {"skill", "effective", "boosted", "invisible", "levels"},
-	enabledByDefault = false
+	tags = {"skill", "effective", "boosted", "invisible", "levels"}
 )
 public class EffectiveLevelPlugin extends Plugin
 {
