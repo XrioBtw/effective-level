@@ -18,8 +18,8 @@ import net.runelite.api.Skill;
 import net.runelite.api.VarPlayer;
 import net.runelite.api.Varbits;
 import net.runelite.api.events.GameTick;
+import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.Widget;
-import net.runelite.api.widgets.WidgetID;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
@@ -208,7 +208,7 @@ public class EffectiveLevelPlugin extends Plugin
 			default:
 				return;
 		}
-		Widget skillWidget = client.getWidget(WidgetID.SKILLS_GROUP_ID, childId);
+		Widget skillWidget = client.getWidget(InterfaceID.SKILLS, childId);
 		if (skillWidget == null)
 		{
 			return;
