@@ -2,6 +2,7 @@ package xrio.effectivelevel;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Provides;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -24,7 +25,6 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
-import org.apache.commons.lang3.ArrayUtils;
 
 @PluginDescriptor(
 	name = "Effective Levels",
@@ -43,12 +43,19 @@ public class EffectiveLevelPlugin extends Plugin
 
 	private final Skill[] combatSkills = new Skill[] { Skill.ATTACK, Skill.STRENGTH, Skill.DEFENCE, Skill.RANGED, Skill.MAGIC };
 	private final Skill[] nonCombatSkills = new Skill[] { Skill.MINING, Skill.CONSTRUCTION, Skill.FISHING, Skill.WOODCUTTING };
-	private final Skill[] skills = ArrayUtils.addAll(combatSkills, nonCombatSkills);
+	private final Skill[] skills = concat(combatSkills, nonCombatSkills);
 
 	private final int[] miningRings = new int[]
 	{
 		ItemID.CELESTIAL_RING, ItemID.CELESTIAL_RING_UNCHARGED, ItemID.CELESTIAL_SIGNET, ItemID.CELESTIAL_SIGNET_UNCHARGED
 	};
+
+	private static Skill[] concat(Skill[] a, Skill[] b)
+	{
+		Skill[] combined = Arrays.copyOf(a, a.length + b.length);
+		System.arraycopy(b, 0, combined, a.length, b.length);
+		return combined;
+	}
 
 	@Provides
 	EffectiveLevelConfig provideConfig(ConfigManager configManager)
