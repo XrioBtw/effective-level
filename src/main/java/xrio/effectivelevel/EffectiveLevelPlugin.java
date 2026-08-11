@@ -6,14 +6,18 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.inject.Inject;
 import net.runelite.api.Client;
+import net.runelite.api.FontTypeFace;
 import net.runelite.api.GameState;
 import net.runelite.api.Item;
 import net.runelite.api.ItemContainer;
 import net.runelite.api.Prayer;
 import net.runelite.api.Skill;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.InventoryID;
@@ -77,6 +81,18 @@ public class EffectiveLevelPlugin extends Plugin
 		{
 			resetLevels();
 		}
+	}
+
+	@Subscribe
+	public void onClientTick(ClientTick tick)
+	{
+		if (!GameState.LOGGED_IN.equals(client.getGameState()))
+		{
+			return;
+		}
+
+		updatePrayerTooltip();
+		updateAttackStyleTooltip();
 	}
 
 	@Subscribe
@@ -183,45 +199,333 @@ public class EffectiveLevelPlugin extends Plugin
 		switch (skill)
 		{
 			case ATTACK:
-				childId = 1;
+				childId = InterfaceID.Stats.ATTACK;
 				break;
 			case STRENGTH:
-				childId = 2;
+				childId = InterfaceID.Stats.STRENGTH;
 				break;
 			case DEFENCE:
-				childId = 3;
+				childId = InterfaceID.Stats.DEFENCE;
 				break;
 			case RANGED:
-				childId = 4;
+				childId = InterfaceID.Stats.RANGED;
 				break;
 			case MAGIC:
-				childId = 6;
+				childId = InterfaceID.Stats.MAGIC;
 				break;
 			case MINING:
-				childId = 17;
+				childId = InterfaceID.Stats.MINING;
 				break;
 			case CONSTRUCTION:
-				childId = 8;
+				childId = InterfaceID.Stats.CONSTRUCTION;
 				break;
 			case FISHING:
-				childId = 19;
+				childId = InterfaceID.Stats.FISHING;
 				break;
 			case WOODCUTTING:
-				childId = 22;
+				childId = InterfaceID.Stats.WOODCUTTING;
 				break;
 			default:
 				return;
 		}
-		Widget skillWidget = client.getWidget(InterfaceID.STATS, childId);
+		Widget skillWidget = client.getWidget(childId);
 		if (skillWidget == null)
 		{
 			return;
 		}
 
 		Widget[] skillWidgetComponents = skillWidget.getDynamicChildren();
-		if (skillWidgetComponents.length >= 4)
+		if (skillWidgetComponents.length >= 5)
 		{
-			skillWidgetComponents[3].setText("" + effectiveLevel);
+			skillWidgetComponents[4].setText("" + effectiveLevel);
+		}
+	}
+
+	private static final Map<String, Prayer> PRAYER_NAMES_BY_DISPLAY_NAME = new ImmutableMap.Builder<String, Prayer>()
+		.put("Clarity of Thought", Prayer.CLARITY_OF_THOUGHT)
+		.put("Improved Reflexes", Prayer.IMPROVED_REFLEXES)
+		.put("Incredible Reflexes", Prayer.INCREDIBLE_REFLEXES)
+		.put("Burst of Strength", Prayer.BURST_OF_STRENGTH)
+		.put("Superhuman Strength", Prayer.SUPERHUMAN_STRENGTH)
+		.put("Ultimate Strength", Prayer.ULTIMATE_STRENGTH)
+		.put("Thick Skin", Prayer.THICK_SKIN)
+		.put("Rock Skin", Prayer.ROCK_SKIN)
+		.put("Steel Skin", Prayer.STEEL_SKIN)
+		.put("Sharp Eye", Prayer.SHARP_EYE)
+		.put("Hawk Eye", Prayer.HAWK_EYE)
+		.put("Eagle Eye", Prayer.EAGLE_EYE)
+		.put("Mystic Will", Prayer.MYSTIC_WILL)
+		.put("Mystic Lore", Prayer.MYSTIC_LORE)
+		.put("Mystic Might", Prayer.MYSTIC_MIGHT)
+		.put("Chivalry", Prayer.CHIVALRY)
+		.put("Piety", Prayer.PIETY)
+		.put("Rigour", Prayer.RIGOUR)
+		.put("Augury", Prayer.AUGURY)
+		.build();
+
+	private static final String TOOLTIP_BOOST_COLOR = "<col=ff0000>";
+	private static final Pattern PERCENT_PATTERN = Pattern.compile("(\\d+)%");
+
+	private void updatePrayerTooltip()
+	{
+		if (!config.showPrayerTooltipBoost())
+		{
+			return;
+		}
+
+		Widget prayerTooltip = client.getWidget(InterfaceID.Prayerbook.TOOLTIP);
+		if (prayerTooltip == null || prayerTooltip.isHidden())
+		{
+			return;
+		}
+
+		Widget[] children = prayerTooltip.getDynamicChildren();
+		if (children.length < 3)
+		{
+			return;
+		}
+
+		Widget descriptionWidget = children[2];
+		String text = descriptionWidget.getText();
+		if (text == null || text.contains(TOOLTIP_BOOST_COLOR))
+		{
+			return;
+		}
+
+		Prayer hoveredPrayer = null;
+		for (Map.Entry<String, Prayer> entry : PRAYER_NAMES_BY_DISPLAY_NAME.entrySet())
+		{
+			if (text.contains(entry.getKey()))
+			{
+				hoveredPrayer = entry.getValue();
+				break;
+			}
+		}
+
+		if (hoveredPrayer == null)
+		{
+			return;
+		}
+
+		SkillBoost[] boosts = getPrayerSkillBoosts(hoveredPrayer);
+		if (boosts.length == 0)
+		{
+			return;
+		}
+
+		Matcher matcher = PERCENT_PATTERN.matcher(text);
+		StringBuilder result = new StringBuilder();
+		int lastEnd = 0;
+		boolean foundAny = false;
+		while (matcher.find())
+		{
+			int percent = Integer.parseInt(matcher.group(1));
+			result.append(text, lastEnd, matcher.end());
+			lastEnd = matcher.end();
+
+			for (SkillBoost boost : boosts)
+			{
+				if (Math.round((boost.multiplier - 1) * 100) == percent)
+				{
+					int currentLevel = client.getBoostedSkillLevel(boost.skill);
+					int delta = (int) (currentLevel * boost.multiplier) - currentLevel;
+					String annotation = " (" + (delta >= 0 ? "+" : "") + delta + ")";
+					result.append(TOOLTIP_BOOST_COLOR).append(annotation).append("</col>");
+					foundAny = true;
+					break;
+				}
+			}
+		}
+
+		if (!foundAny)
+		{
+			return;
+		}
+
+		result.append(text, lastEnd, text.length());
+		resizeTooltip(prayerTooltip, children, descriptionWidget, text, result.toString());
+	}
+
+	private int countWrappedLines(String markupText, int maxWidth, FontTypeFace font)
+	{
+		int totalLines = 0;
+		for (String paragraph : markupText.split("<br>", -1))
+		{
+			String plain = paragraph.replaceAll("<[^>]*>", "").trim();
+			String[] words = plain.isEmpty() ? new String[0] : plain.split("\\s+");
+
+			int linesInParagraph = 1;
+			StringBuilder line = new StringBuilder();
+			for (String word : words)
+			{
+				String candidate = line.length() == 0 ? word : line + " " + word;
+				if (line.length() > 0 && font.getTextWidth(candidate) > maxWidth)
+				{
+					linesInParagraph++;
+					line = new StringBuilder(word);
+				}
+				else
+				{
+					line = new StringBuilder(candidate);
+				}
+			}
+			totalLines += linesInParagraph;
+		}
+		return totalLines;
+	}
+
+	private void updateAttackStyleTooltip()
+	{
+		if (!config.showAttackStyleTooltipBoost())
+		{
+			return;
+		}
+
+		Widget combatTooltip = client.getWidget(InterfaceID.CombatInterface.TOOLTIP);
+		if (combatTooltip == null || combatTooltip.isHidden())
+		{
+			return;
+		}
+
+		Widget[] children = combatTooltip.getDynamicChildren();
+		if (children.length < 3)
+		{
+			return;
+		}
+
+		Widget descriptionWidget = children[2];
+		String text = descriptionWidget.getText();
+		if (text == null || text.contains(TOOLTIP_BOOST_COLOR))
+		{
+			return;
+		}
+
+		int nameStart = text.indexOf('(');
+		int nameEnd = text.indexOf(')', nameStart);
+		if (nameStart == -1 || nameEnd == -1)
+		{
+			return;
+		}
+		String hoveredStyle = text.substring(nameStart + 1, nameEnd);
+
+		// The tooltip shows a short style name (e.g. "Accurate"), but the same short name is reused
+		// across weapon types for different skills (melee's "Accurate" vs ranged's "Accurate ranging").
+		// Resolve it against this weapon's own style list so the right skill gets credited.
+		int weaponCategory = client.getVarbitValue(VarbitID.COMBAT_WEAPON_CATEGORY);
+		for (int i = 0; i < 4; i++)
+		{
+			String candidate = CombatStyle.getAttackStyleText(weaponCategory, i);
+			if (candidate != null && (candidate.equals(hoveredStyle) || candidate.startsWith(hoveredStyle + " ")))
+			{
+				hoveredStyle = candidate;
+				break;
+			}
+		}
+
+		StringBuilder extra = new StringBuilder();
+		boolean anyBonus = false;
+		for (Skill skill : combatSkills)
+		{
+			int bonus = getStanceBonusForStyle(skill, hoveredStyle);
+			if (bonus != 0)
+			{
+				extra.append("<br>").append(TOOLTIP_BOOST_COLOR).append('+').append(bonus).append(' ').append(skill.getName()).append("</col>");
+				anyBonus = true;
+			}
+		}
+
+		if (!anyBonus)
+		{
+			return;
+		}
+
+		resizeTooltip(combatTooltip, children, descriptionWidget, text, text + extra);
+	}
+
+	private void resizeTooltip(Widget tooltip, Widget[] children, Widget descriptionWidget, String oldText, String newText)
+	{
+		// OSRS text widgets have no auto-size-to-wrapped-text mode (WidgetSizeMode is only
+		// ABSOLUTE/MINUS/ABSOLUTE_16384THS) and getScrollHeight() is only populated for
+		// scrollable LAYER widgets, not plain TEXT ones — so there's no way to ask the client
+		// for the wrapped height directly. We have to work it out from the same font metrics
+		// the client itself renders with.
+		FontTypeFace font = descriptionWidget.getFont();
+		if (font != null)
+		{
+			int maxWidth = descriptionWidget.getWidth();
+			int extraLineCount = countWrappedLines(newText, maxWidth, font) - countWrappedLines(oldText, maxWidth, font);
+			if (extraLineCount > 0)
+			{
+				int lineHeight = descriptionWidget.getLineHeight();
+				int resolvedLineHeight = lineHeight > 0 ? lineHeight : font.getBaseline() + 3;
+				tooltip.setOriginalHeight(tooltip.getHeight() + extraLineCount * resolvedLineHeight);
+			}
+		}
+
+		descriptionWidget.setText(newText);
+		tooltip.revalidate();
+		for (Widget child : children)
+		{
+			child.revalidate();
+		}
+	}
+
+	private static final class SkillBoost
+	{
+		private final Skill skill;
+		private final double multiplier;
+
+		private SkillBoost(Skill skill, double multiplier)
+		{
+			this.skill = skill;
+			this.multiplier = multiplier;
+		}
+	}
+
+	private SkillBoost[] getPrayerSkillBoosts(Prayer prayer)
+	{
+		switch (prayer)
+		{
+			case CLARITY_OF_THOUGHT:
+				return new SkillBoost[] { new SkillBoost(Skill.ATTACK, 1.05) };
+			case IMPROVED_REFLEXES:
+				return new SkillBoost[] { new SkillBoost(Skill.ATTACK, 1.10) };
+			case INCREDIBLE_REFLEXES:
+				return new SkillBoost[] { new SkillBoost(Skill.ATTACK, 1.15) };
+			case BURST_OF_STRENGTH:
+				return new SkillBoost[] { new SkillBoost(Skill.STRENGTH, 1.05) };
+			case SUPERHUMAN_STRENGTH:
+				return new SkillBoost[] { new SkillBoost(Skill.STRENGTH, 1.10) };
+			case ULTIMATE_STRENGTH:
+				return new SkillBoost[] { new SkillBoost(Skill.STRENGTH, 1.15) };
+			case THICK_SKIN:
+				return new SkillBoost[] { new SkillBoost(Skill.DEFENCE, 1.05) };
+			case ROCK_SKIN:
+				return new SkillBoost[] { new SkillBoost(Skill.DEFENCE, 1.10) };
+			case STEEL_SKIN:
+				return new SkillBoost[] { new SkillBoost(Skill.DEFENCE, 1.15) };
+			case SHARP_EYE:
+				return new SkillBoost[] { new SkillBoost(Skill.RANGED, 1.05) };
+			case HAWK_EYE:
+				return new SkillBoost[] { new SkillBoost(Skill.RANGED, 1.10) };
+			case EAGLE_EYE:
+				return new SkillBoost[] { new SkillBoost(Skill.RANGED, 1.15) };
+			case MYSTIC_WILL:
+				return new SkillBoost[] { new SkillBoost(Skill.MAGIC, 1.05) };
+			case MYSTIC_LORE:
+				return new SkillBoost[] { new SkillBoost(Skill.MAGIC, 1.10) };
+			case MYSTIC_MIGHT:
+				return new SkillBoost[] { new SkillBoost(Skill.MAGIC, 1.15) };
+			case CHIVALRY:
+				return new SkillBoost[] { new SkillBoost(Skill.ATTACK, 1.15), new SkillBoost(Skill.STRENGTH, 1.18), new SkillBoost(Skill.DEFENCE, 1.20) };
+			case PIETY:
+				return new SkillBoost[] { new SkillBoost(Skill.ATTACK, 1.20), new SkillBoost(Skill.STRENGTH, 1.23), new SkillBoost(Skill.DEFENCE, 1.25) };
+			case RIGOUR:
+				return new SkillBoost[] { new SkillBoost(Skill.RANGED, 1.20), new SkillBoost(Skill.DEFENCE, 1.25) };
+			case AUGURY:
+				return new SkillBoost[] { new SkillBoost(Skill.MAGIC, 1.25), new SkillBoost(Skill.DEFENCE, 1.25) };
+			default:
+				return new SkillBoost[0];
 		}
 	}
 
@@ -279,6 +583,11 @@ public class EffectiveLevelPlugin extends Plugin
 
 		String attackStyle = CombatStyle.getAttackStyleText(combatStyleVarbit, attackStyleVarbit);
 
+		return getStanceBonusForStyle(skill, attackStyle);
+	}
+
+	private int getStanceBonusForStyle(Skill skill, String attackStyle)
+	{
 		int bonus = 0;
 
 		switch (skill)

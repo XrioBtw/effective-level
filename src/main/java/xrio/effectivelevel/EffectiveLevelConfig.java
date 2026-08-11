@@ -61,4 +61,26 @@ public interface EffectiveLevelConfig extends Config
 	{
 		return true;
 	}
+
+	@ConfigItem(
+		keyName = "showPrayerTooltipBoost",
+		name = "Show prayer tooltip boost",
+		description = "Show the effective level boost next to each stat when hovering a prayer, without needing to turn it on.",
+		position = 5
+	)
+	default boolean showPrayerTooltipBoost()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "showAttackStyleTooltipBoost",
+		name = "Show attack style tooltip boost",
+		description = "Show the hidden stance bonus when hovering an attack style, without needing to select it.",
+		position = 6
+	)
+	default boolean showAttackStyleTooltipBoost()
+	{
+		return true;
+	}
 }
