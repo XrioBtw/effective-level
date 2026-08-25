@@ -183,45 +183,45 @@ public class EffectiveLevelPlugin extends Plugin
 		switch (skill)
 		{
 			case ATTACK:
-				childId = 1;
+				childId = InterfaceID.Stats.ATTACK;
 				break;
 			case STRENGTH:
-				childId = 2;
+				childId = InterfaceID.Stats.STRENGTH;
 				break;
 			case DEFENCE:
-				childId = 3;
+				childId = InterfaceID.Stats.DEFENCE;
 				break;
 			case RANGED:
-				childId = 4;
+				childId = InterfaceID.Stats.RANGED;
 				break;
 			case MAGIC:
-				childId = 6;
+				childId = InterfaceID.Stats.MAGIC;
 				break;
 			case MINING:
-				childId = 17;
+				childId = InterfaceID.Stats.MINING;
 				break;
 			case CONSTRUCTION:
-				childId = 8;
+				childId = InterfaceID.Stats.CONSTRUCTION;
 				break;
 			case FISHING:
-				childId = 19;
+				childId = InterfaceID.Stats.FISHING;
 				break;
 			case WOODCUTTING:
-				childId = 22;
+				childId = InterfaceID.Stats.WOODCUTTING;
 				break;
 			default:
 				return;
 		}
-		Widget skillWidget = client.getWidget(InterfaceID.STATS, childId);
+		Widget skillWidget = client.getWidget(childId);
 		if (skillWidget == null)
 		{
 			return;
 		}
 
 		Widget[] skillWidgetComponents = skillWidget.getDynamicChildren();
-		if (skillWidgetComponents.length >= 4)
+		if (skillWidgetComponents.length >= 5)
 		{
-			skillWidgetComponents[3].setText("" + effectiveLevel);
+			skillWidgetComponents[4].setText("" + effectiveLevel);
 		}
 	}
 
